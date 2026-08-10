@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Badminton Scorer</title>
+
+    <!-- Firebase Compat Web SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-green: #22c55e;
+            --accent-blue: #3b82f6;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 8px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            min-height: 92vh;
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .admin-nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .btn-admin-link {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .top-score-panel {
+            background-color: #0a1120;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scores-summary {
+            display: grid;
+            grid-template-columns: 32px minmax(0, 1fr) auto 28px;
+            align-items: center;
+            gap: 6px 12px;
+            width: 100%;
+        }
+
+        .top-team-logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+
+        .serve-icon {
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .player-name-text {
+            font-size: clamp(0.9rem, 2vw, 1.25rem);
+            font-weight: 600;
+            color: #ffffff;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sets-display {
+            font-size: clamp(0.9rem, 2vw, 1.25rem);
+            font-weight: bold;
+            color: #ffffff;
+            text-align: right;
+            letter-spacing: 2px;
+            white-space: nowrap;
+            padding-left: 8px;
+        }
+
+        .serving-text {
+            color: var(--accent-green) !important;
+        }
+
+        .setup-card {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background-color: #0f172a;
+            color: var(--text-light);
+            font-size: 0.95rem;
+            width: 100%;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .match-status {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--accent-blue);
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .scoreboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-grow: 1;
+        }
+
+        .team-card {
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 14px;
+            padding: 16px 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            transition: border-color 0.2s ease;
+        }
+
+        .team-card.serving {
+            border-color: var(--accent-green);
+        }
+
+        .current-score {
+            font-size: clamp(3.5rem, 10vh, 7rem);
+            font-weight: 800;
+            line-height: 1;
+            margin: 8px 0;
+            color: #fff;
+        }
+
+        .card-player-name {
+            font-size: clamp(0.9rem, 2vh, 1.2rem);
+            font-weight: 600;
+            color: var(--text-muted);
+            line-height: 1.25;
+            white-space: normal;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            width: 100%;
+            text-align: center;
+            margin: 6px 0 10px 0;
+            padding: 0 4px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn {
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .btn:active { opacity: 0.85; transform: scale(0.97); }
+
+        .btn-score {
+            flex: 1;
+            height: clamp(48px, 6vh, 64px);
+            font-size: clamp(1.5rem, 3.5vh, 2.2rem);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-plus { background-color: var(--accent-green); }
+        .btn-minus { background-color: #475569; }
+
+        .btn-serve {
+            background-color: #334155;
+            color: var(--text-light);
+            margin-top: 8px;
+            width: 100%;
+            padding: clamp(8px, 1.5vh, 12px) 4px;
+            font-size: clamp(0.8rem, 1.5vh, 1rem);
+            border-radius: 8px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: clamp(12px, 2vh, 18px);
+            border-radius: 10px;
+            color: white;
+            font-size: clamp(0.95rem, 2vh, 1.15rem);
+        }
+
+        .btn-next-set { background-color: var(--accent-blue); }
+        .btn-end-match { background-color: var(--danger); }
+
+        .winner-banner {
+            display: none;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            text-align: center;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 4px; }
+            .container { padding: 12px; min-height: 94vh; }
+            .setup-card { gap: 8px; }
+            .scoreboard-grid { gap: 10px; }
+            .team-card { padding: 12px 6px; }
+        }
+
+        @media (orientation: landscape) and (max-height: 600px) {
+            body { padding: 4px; }
+            .container { padding: 8px 12px; min-height: 96vh; }
+            .top-score-panel { padding: 6px 12px; margin-bottom: 6px; }
+            .setup-card { margin-bottom: 6px; }
+            .input-group input { padding: 4px 8px; font-size: 0.85rem; }
+            .match-status { margin-bottom: 4px; font-size: 0.75rem; }
+            .current-score { font-size: 2.6rem; margin: 2px 0; }
+            .card-player-name { font-size: 0.8rem; margin: 2px 0 4px 0; }
+            .btn-score { height: 38px; font-size: 1.2rem; }
+            .btn-serve { padding: 4px; margin-top: 4px; font-size: 0.75rem; }
+            .btn-action { padding: 8px; font-size: 0.85rem; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="admin-nav-bar">
+        <a href="#" onclick="goBackToMatches(event)" class="btn-admin-link">← Back to Matches List</a>
+        <span id="active-match-tag" style="font-size:0.75rem; color:var(--text-muted)">Live Firebase Sync</span>
+    </div>
+
+    <!-- Top Live Set Score Panel -->
+    <div class="top-score-panel">
+        <div class="scores-summary">
+            <!-- Row 1: Player/Team 1 -->
+            <div id="top-logo-1-container" class="top-team-logo">🛡️</div>
+            <span id="top-name-1" class="player-name-text">Team 1:</span>
+            <span id="top-sets-1" class="sets-display">0 | 0 | 0</span>
+            <span id="top-serve-1" class="serve-icon">🏸</span>
+
+            <!-- Row 2: Player/Team 2 -->
+            <div id="top-logo-2-container" class="top-team-logo">🛡️</div>
+            <span id="top-name-2" class="player-name-text">Team 2:</span>
+            <span id="top-sets-2" class="sets-display">0 | 0 | 0</span>
+            <span id="top-serve-2" class="serve-icon" style="visibility: hidden;">🏸</span>
+        </div>
+    </div>
+
+    <!-- Winner Banner -->
+    <div id="winner-banner" class="winner-banner"></div>
+
+    <!-- Setup Inputs -->
+    <div class="setup-card">
+        <div class="input-group">
+            <label for="team1-input">Player / Team 1</label>
+            <input type="text" id="team1-input" value="Player 1" oninput="updateNames()">
+        </div>
+        <div class="input-group">
+            <label for="team2-input">Player / Team 2</label>
+            <input type="text" id="team2-input" value="Player 2" oninput="updateNames()">
+        </div>
+    </div>
+
+    <!-- Match Status -->
+    <div class="match-status" id="match-status">
+        Best of 3 Sets — Playing Set <span id="current-set-num">1</span>
+    </div>
+
+    <!-- Main Scoring Controls Grid -->
+    <div class="scoreboard-grid">
+        <!-- Team 1 Card -->
+        <div class="team-card" id="card-1">
+            <div class="current-score" id="score-1">0</div>
+            <div class="card-player-name" id="card-name-1">Player 1</div>
+            <div class="btn-group scorer-controls">
+                <button class="btn btn-score btn-minus" onclick="changeScore(1, -1)">-</button>
+                <button class="btn btn-score btn-plus" onclick="changeScore(1, 1)">+</button>
+            </div>
+            <button class="btn btn-serve scorer-controls" onclick="setServer(1)">Set Serve 🏸</button>
+        </div>
+
+        <!-- Team 2 Card -->
+        <div class="team-card" id="card-2">
+            <div class="current-score" id="score-2">0</div>
+            <div class="card-player-name" id="card-name-2">Player 2</div>
+            <div class="btn-group scorer-controls">
+                <button class="btn btn-score btn-minus" onclick="changeScore(2, -1)">-</button>
+                <button class="btn btn-score btn-plus" onclick="changeScore(2, 1)">+</button>
+            </div>
+            <button class="btn btn-serve scorer-controls" onclick="setServer(2)">Set Serve 🏸</button>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions scorer-controls">
+        <button class="btn btn-action btn-next-set" id="btn-next-set" onclick="endCurrentSet()">End Set & Start Next</button>
+        <button class="btn btn-action btn-end-match" onclick="endMatch()">End Match</button>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyD40j6WwGqc1IL_NweREsxE_4Y-KzsFHIE",
+        authDomain: "tournament-management-a0625.firebaseapp.com",
+        databaseURL: "https://tournament-management-a0625-default-rtdb.firebaseio.com",
+        projectId: "tournament-management-a0625",
+        storageBucket: "tournament-management-a0625.firebasestorage.app",
+        messagingSenderId: "624761093942",
+        appId: "1:624761093942:web:8be59769bc43dc512ebd97"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const dbRef = firebase.database().ref("tournaments_db");
+
+    let currentSet = 1;
+    let scores = [{ t1: 0, t2: 0 }, { t1: 0, t2: 0 }, { t1: 0, t2: 0 }];
+    let server = 1;
+    let isMatchOver = false;
+    let winnerName = "-";
+
+    let teamA_Name = "";
+    let teamB_Name = "";
+    let matchCourt = "";
+    let team1Logo = "";
+    let team2Logo = "";
+
+    const activeTourneyId = localStorage.getItem("active_tourney_id");
+    const activeMatchId = localStorage.getItem("active_match_id");
+
+    function getCurrentUserRole() {
+        const userStr = localStorage.getItem("app_current_user");
+        if (!userStr) return "guest";
+        try {
+            return JSON.parse(userStr).role || "guest";
+        } catch(e) {
+            return "guest";
+        }
+    }
+
+    function enforceUserRolePermissions() {
+        const role = getCurrentUserRole();
+        if (role === "guest") {
+            document.querySelectorAll('.scorer-controls').forEach(el => el.style.display = 'none');
+            document.getElementById('team1-input').disabled = true;
+            document.getElementById('team2-input').disabled = true;
+            document.getElementById('active-match-tag').innerText = "Live Scoreboard (View-Only)";
+        }
+    }
+
+    function goBackToMatches(e) {
+        if (e) e.preventDefault();
+        localStorage.setItem("return_to_matches", "true");
+        window.location.href = "tournament_admin.html";
+    }
+
+    function loadInitialDataFromLocalStorage() {
+        if (!activeTourneyId || !activeMatchId) return;
+
+        const dbLocal = JSON.parse(localStorage.getItem("tournaments_db") || "[]");
+        const t = dbLocal.find(item => item.id === activeTourneyId);
+        if (!t || !t.matches) return;
+
+        const m = t.matches.find(item => item.matchId === activeMatchId);
+        if (!m) return;
+
+        teamA_Name = m.teamA || "";
+        teamB_Name = m.teamB || "";
+        matchCourt = m.court || "";
+
+        document.getElementById('team1-input').value = m.playersA || m.teamA;
+        document.getElementById('team2-input').value = m.playersB || m.teamB;
+        document.getElementById('active-match-tag').innerText = `Match ID: ${m.matchId} | ${matchCourt}`;
+
+        if (t.teams && t.teams.length > 0) {
+            const tm1 = t.teams.find(item => item.name === m.teamA);
+            const tm2 = t.teams.find(item => item.name === m.teamB);
+            if (tm1 && tm1.logo) team1Logo = tm1.logo;
+            if (tm2 && tm2.logo) team2Logo = tm2.logo;
+        }
+
+        renderTeamLogos();
+
+        if (m.rawScores) scores = m.rawScores;
+        if (m.currentSet) currentSet = m.currentSet;
+        if (m.server) server = m.server;
+
+        if (m.status === "Completed") {
+            isMatchOver = true;
+            winnerName = m.winner;
+            const banner = document.getElementById('winner-banner');
+            banner.innerText = `🏆 Winner: ${winnerName}!`;
+            banner.style.display = 'block';
+        }
+
+        renderLocalUI();
+    }
+
+    dbRef.on("value", snapshot => {
+        const db = snapshot.val();
+        if (!db || !activeTourneyId || !activeMatchId) return;
+
+        const tournaments = Array.isArray(db) ? db : Object.values(db);
+        const t = tournaments.find(item => item.id === activeTourneyId);
+        if (!t || !t.matches) return;
+
+        const m = t.matches.find(item => item.matchId === activeMatchId);
+        if (!m) return;
+
+        teamA_Name = m.teamA || "";
+        teamB_Name = m.teamB || "";
+        matchCourt = m.court || "";
+
+        document.getElementById('team1-input').value = m.playersA || m.teamA;
+        document.getElementById('team2-input').value = m.playersB || m.teamB;
+        document.getElementById('active-match-tag').innerText = `Match ID: ${m.matchId} | ${matchCourt}`;
+
+        if (t.teams && t.teams.length > 0) {
+            const tm1 = t.teams.find(item => item.name === m.teamA);
+            const tm2 = t.teams.find(item => item.name === m.teamB);
+            if (tm1 && tm1.logo) team1Logo = tm1.logo;
+            if (tm2 && tm2.logo) team2Logo = tm2.logo;
+        }
+
+        renderTeamLogos();
+
+        if (m.rawScores) scores = m.rawScores;
+        if (m.currentSet) currentSet = m.currentSet;
+        if (m.server) server = m.server;
+
+        if (m.status === "Completed") {
+            isMatchOver = true;
+            winnerName = m.winner;
+            const banner = document.getElementById('winner-banner');
+            banner.innerText = `🏆 Winner: ${winnerName}!`;
+            banner.style.display = 'block';
+        }
+
+        renderLocalUI();
+    });
+
+    function renderTeamLogos() {
+        const logo1Container = document.getElementById('top-logo-1-container');
+        const logo2Container = document.getElementById('top-logo-2-container');
+
+        logo1Container.innerHTML = team1Logo ? `<img src="${team1Logo}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : "🛡️";
+        logo2Container.innerHTML = team2Logo ? `<img src="${team2Logo}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : "🛡️";
+    }
+
+    function syncMatchToFirebase() {
+        if (!activeTourneyId || !activeMatchId || getCurrentUserRole() === "guest") return;
+
+        dbRef.once("value", snapshot => {
+            const db = snapshot.val();
+            let tournaments = db ? (Array.isArray(db) ? db : Object.values(db)) : [];
+
+            if (tournaments.length === 0) {
+                tournaments = JSON.parse(localStorage.getItem("tournaments_db") || "[]");
+            }
+
+            let tIndex = tournaments.findIndex(item => item.id === activeTourneyId);
+            if (tIndex === -1) return;
+
+            let mIndex = tournaments[tIndex].matches ? tournaments[tIndex].matches.findIndex(item => item.matchId === activeMatchId) : -1;
+
+            if (mIndex === -1) {
+                const localDb = JSON.parse(localStorage.getItem("tournaments_db") || "[]");
+                const localT = localDb.find(item => item.id === activeTourneyId);
+                if (localT && localT.matches) {
+                    const localM = localT.matches.find(item => item.matchId === activeMatchId);
+                    if (localM) {
+                        if (!tournaments[tIndex].matches) tournaments[tIndex].matches = [];
+                        tournaments[tIndex].matches.push(localM);
+                        mIndex = tournaments[tIndex].matches.length - 1;
+                    }
+                }
+            }
+
+            if (mIndex === -1) return;
+
+            const p1Name = document.getElementById('team1-input').value.trim() || 'Player 1';
+            const p2Name = document.getElementById('team2-input').value.trim() || 'Player 2';
+
+            let formattedScore = scores.slice(0, currentSet).map(s => `${s.t1}-${s.t2}`).join(' | ');
+
+            tournaments[tIndex].matches[mIndex].playersA = p1Name;
+            tournaments[tIndex].matches[mIndex].playersB = p2Name;
+            tournaments[tIndex].matches[mIndex].score = formattedScore;
+            tournaments[tIndex].matches[mIndex].rawScores = scores;
+            tournaments[tIndex].matches[mIndex].currentSet = currentSet;
+            tournaments[tIndex].matches[mIndex].server = server;
+            tournaments[tIndex].matches[mIndex].status = isMatchOver ? "Completed" : "In Progress";
+            tournaments[tIndex].matches[mIndex].winner = isMatchOver ? winnerName : "-";
+            tournaments[tIndex].matches[mIndex].result = isMatchOver ? `${winnerName} won` : `Set ${currentSet} In Progress`;
+
+            dbRef.set(tournaments);
+            localStorage.setItem("tournaments_db", JSON.stringify(tournaments, null, 2));
+        });
+    }
+
+    function updateNames() {
+        renderLocalUI();
+        syncMatchToFirebase();
+    }
+
+    function changeScore(team, delta) {
+        if (isMatchOver || getCurrentUserRole() === "guest") return;
+
+        const currentScores = scores[currentSet - 1];
+        if (team === 1) {
+            currentScores.t1 = Math.max(0, currentScores.t1 + delta);
+            if (delta > 0) server = 1;
+        } else {
+            currentScores.t2 = Math.max(0, currentScores.t2 + delta);
+            if (delta > 0) server = 2;
+        }
+
+        renderLocalUI();
+        syncMatchToFirebase();
+    }
+
+    function setServer(team) {
+        if (getCurrentUserRole() === "guest") return;
+        server = team;
+        renderLocalUI();
+        syncMatchToFirebase();
+    }
+
+    function endCurrentSet() {
+        if (isMatchOver || getCurrentUserRole() === "guest") return;
+
+        const setScores = scores[currentSet - 1];
+        if (setScores.t1 === 0 && setScores.t2 === 0) {
+            if (!confirm("Current set score is 0 - 0. End this set anyway?")) return;
+        }
+
+        const setsWonT1 = getSetsWon(1);
+        const setsWonT2 = getSetsWon(2);
+
+        if (currentSet < 3 && setsWonT1 < 2 && setsWonT2 < 2) {
+            currentSet++;
+            renderLocalUI();
+            syncMatchToFirebase();
+        } else {
+            endMatch();
+        }
+    }
+
+    function getSetsWon(team) {
+        let setsWon = 0;
+        for (let i = 0; i < currentSet; i++) {
+            const s = scores[i];
+            if (team === 1 && s.t1 > s.t2) setsWon++;
+            if (team === 2 && s.t2 > s.t1) setsWon++;
+        }
+        return setsWon;
+    }
+
+    function endMatch() {
+        if (isMatchOver || getCurrentUserRole() === "guest") return;
+
+        const p1Name = document.getElementById('team1-input').value.trim() || 'Player 1';
+        const p2Name = document.getElementById('team2-input').value.trim() || 'Player 2';
+
+        let t1Sets = getSetsWon(1);
+        let t2Sets = getSetsWon(2);
+
+        let recWinnerTeam = teamA_Name || p1Name;
+        let recWinnerPlayers = p1Name;
+
+        let altWinnerTeam = teamB_Name || p2Name;
+        let altWinnerPlayers = p2Name;
+
+        if (t2Sets > t1Sets) {
+            recWinnerTeam = teamB_Name || p2Name;
+            recWinnerPlayers = p2Name;
+            altWinnerTeam = teamA_Name || p1Name;
+            altWinnerPlayers = p1Name;
+        } else if (t1Sets === t2Sets) {
+            const currentScores = scores[currentSet - 1];
+            if (currentScores.t2 > currentScores.t1) {
+                recWinnerTeam = teamB_Name || p2Name;
+                recWinnerPlayers = p2Name;
+                altWinnerTeam = teamA_Name || p1Name;
+                altWinnerPlayers = p1Name;
+            }
+        }
+
+        const promptMsg = `Recommended Winner:\nTeam Name: ${recWinnerTeam}\nPlayers: ${recWinnerPlayers}\n\nClick OK to confirm ${recWinnerTeam} as the winner (+1 Category Point).\nClick Cancel to select a different team.`;
+
+        const isConfirmed = confirm(promptMsg);
+
+        if (isConfirmed) {
+            winnerName = recWinnerTeam;
+        } else {
+            const choice = prompt(`Select Winner (+1 Category Point):\n1: ${recWinnerTeam} (${recWinnerPlayers})\n2: ${altWinnerTeam} (${altWinnerPlayers})`, "1");
+            if (choice === "2") {
+                winnerName = altWinnerTeam;
+            } else if (choice === "1") {
+                winnerName = recWinnerTeam;
+            } else {
+                return;
+            }
+        }
+
+        isMatchOver = true;
+        const banner = document.getElementById('winner-banner');
+        banner.innerText = `🏆 Winner: ${winnerName}! (+1 Category Point awarded)`;
+        banner.style.display = 'block';
+
+        renderLocalUI();
+        syncMatchToFirebase();
+    }
+
+    function renderLocalUI() {
+        const p1Name = document.getElementById('team1-input').value.trim() || 'Player 1';
+        const p2Name = document.getElementById('team2-input').value.trim() || 'Player 2';
+
+        document.getElementById('card-name-1').innerText = p1Name;
+        document.getElementById('card-name-2').innerText = p2Name;
+
+        let setScoresT1 = scores.slice(0, currentSet).map(s => s.t1.toString());
+        let setScoresT2 = scores.slice(0, currentSet).map(s => s.t2.toString());
+
+        const topName1 = document.getElementById('top-name-1');
+        const topName2 = document.getElementById('top-name-2');
+        const topSets1 = document.getElementById('top-sets-1');
+        const topSets2 = document.getElementById('top-sets-2');
+
+        topName1.innerText = (teamA_Name ? `${teamA_Name} (${p1Name})` : p1Name) + ':';
+        topName2.innerText = (teamB_Name ? `${teamB_Name} (${p2Name})` : p2Name) + ':';
+
+        topSets1.innerText = setScoresT1.join(' | ');
+        topSets2.innerText = setScoresT2.join(' | ');
+
+        const serve1 = document.getElementById('top-serve-1');
+        const serve2 = document.getElementById('top-serve-2');
+        const card1 = document.getElementById('card-1');
+        const card2 = document.getElementById('card-2');
+
+        if (server === 1) {
+            serve1.style.visibility = 'visible';
+            serve2.style.visibility = 'hidden';
+
+            topName1.classList.add('serving-text');
+            topSets1.classList.add('serving-text');
+            topName2.classList.remove('serving-text');
+            topSets2.classList.remove('serving-text');
+
+            card1.classList.add('serving');
+            card2.classList.remove('serving');
+        } else {
+            serve1.style.visibility = 'hidden';
+            serve2.style.visibility = 'visible';
+
+            topName1.classList.remove('serving-text');
+            topSets1.classList.remove('serving-text');
+            topName2.classList.add('serving-text');
+            topSets2.classList.add('serving-text');
+
+            card1.classList.remove('serving');
+            card2.classList.add('serving');
+        }
+
+        document.getElementById('score-1').innerText = scores[currentSet - 1].t1;
+        document.getElementById('score-2').innerText = scores[currentSet - 1].t2;
+        document.getElementById('current-set-num').innerText = currentSet;
+
+        if (isMatchOver) {
+            const btnNextSet = document.getElementById('btn-next-set');
+            if (btnNextSet) {
+                btnNextSet.disabled = true;
+                btnNextSet.style.opacity = '0.5';
+            }
+            document.getElementById('match-status').innerText = "Match Concluded";
+            serve1.style.visibility = 'hidden';
+            serve2.style.visibility = 'hidden';
+        }
+    }
+
+    enforceUserRolePermissions();
+    loadInitialDataFromLocalStorage();
+</script>
+
+</body>
+</html>
