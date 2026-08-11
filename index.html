@@ -779,7 +779,7 @@
             touch-action: manipulation;
         }
 
-        .btn-next-set { background-color: var(--accent-blue); }
+        .btn-select-set { background-color: var(--accent-purple); }
         .btn-end-match { background-color: var(--accent-red); }
 
         .winner-banner {
@@ -1011,7 +1011,7 @@
                         <p style="color: var(--text-muted); margin-top: 4px;" id="matches-subtitle">Viewing match history</p>
                     </div>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-success role-scorer-allowed" onclick="openStartMatchModal()">+New Match</button>
+                        <button type="button" class="btn btn-success role-scorer-allowed" onclick="openMatchModalForAdd()">+New Match</button>
                         <button type="button" class="btn btn-danger role-admin-only" onclick="deleteAllMatches()">🗑️ Delete All Matches</button>
                     </div>
                 </div>
@@ -1080,7 +1080,7 @@
                                 <img id="tourney-logo-img" class="img-preview" src="" style="display:none; margin-top: 6px;">
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success role-admin-only" style="width: 100%;">Save Tournament Details</button>
+                        <button type="submit" class="btn btn-success role-admin-only">Save Tournament Details</button>
                     </form>
                 </div>
 
@@ -1173,7 +1173,7 @@
 
                         <!-- Action Buttons -->
                         <div class="scorer-actions">
-                            <button type="button" class="btn-action-scorer btn-next-set" id="btn-next-set" onclick="endCurrentSet()">End Set & Start Next</button>
+                            <button type="button" class="btn-action-scorer btn-select-set" id="btn-select-set" onclick="promptSelectSet()">Change Current Set (Set 3)</button>
                             <button type="button" class="btn-action-scorer btn-end-match" id="btn-end-match" onclick="endMatch()">End Match</button>
                         </div>
                     </div>
@@ -1205,10 +1205,12 @@
         </div>
     </div>
 
+    <!-- Create/Update Match Modal -->
     <div class="modal" id="match-modal">
         <div class="modal-content">
-            <h2 style="margin-bottom: 16px;">Start New Match</h2>
-            <form id="start-match-form" onsubmit="handleSaveAndStartMatch(event)">
+            <h2 id="match-modal-title" style="margin-bottom: 16px;">Create/Update Match</h2>
+            <form id="start-match-form" onsubmit="handleSaveMatchForm(event)">
+                <input type="hidden" id="edit-match-id">
                 <div class="form-group" style="margin-bottom: 12px;">
                     <label for="select-court">Select Court *</label>
                     <select id="select-court" required>
@@ -1216,6 +1218,14 @@
                         <option value="Court-2">Court-2</option>
                         <option value="Court-3">Court-3</option>
                         <option value="Court-4">Court-4</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label for="match-status-select">Status *</label>
+                    <select id="match-status-select" required>
+                        <option value="Draft" selected>Draft</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom: 12px;">
@@ -1240,7 +1250,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeMatchModal()">Cancel</button>
-                    <button type="submit" class="btn btn-success">Save & Launch Scorer 🏸</button>
+                    <button type="submit" class="btn btn-success">Save</button>
                 </div>
             </form>
         </div>
@@ -1672,7 +1682,7 @@
             standings.forEach(st => {
                 const tr = document.createElement('tr');
                 const logoHtml = st.logo ? `<img src="${st.logo}" class="img-preview">` : '🛡️';
-                let editBtnHtml = (user && user.role === 'admin') ? `<td><button type="button" class="btn btn-sm btn-primary" onclick="openEditMegaModal('${st.id}')">Edit Stats</button></td>` : `<td>-</td>`;
+                let editBtnHtml = (user && user.role === 'admin') ? `<td><button type="button" class="btn btn-sm btn-primary" onclick="openEditMegaModal('${st.id}')">✏️Mega Points</button></td>` : `<td>-</td>`;
 
                 tr.innerHTML = `
                     <td>${logoHtml}</td>
@@ -1747,7 +1757,8 @@
                     
                     let actionHtml = '';
                     if (user && user.role !== 'guest') {
-                        actionHtml += `<button type="button" class="btn btn-sm btn-primary" onclick="launchScoringAppForMatch('${m.matchId}')">🏸 Scoring App</button>`;
+                        actionHtml += `<button type="button" class="btn btn-sm btn-primary" onclick="launchScoringAppForMatch('${m.matchId}')">🏸 Scoring</button>`;
+                        actionHtml += ` <button type="button" class="btn btn-sm btn-secondary" onclick="openMatchModalForEdit('${m.matchId}')">✏️ Edit</button>`;
                     }
 
                     if (user && user.role === 'admin') {
@@ -1802,11 +1813,11 @@
             switchView('scorer');
         }
 
-        function openStartMatchModal() {
+        function openMatchModalForAdd() {
             const db = getDatabase();
             const t = db.find(item => item.id === currentWorkingTourneyId);
             if (!t || !t.teams || t.teams.length < 2) {
-                alert("Please add at least 2 teams before starting a match!");
+                alert("Please add at least 2 teams before creating a match!");
                 return;
             }
             const selectA = document.getElementById('select-team-a');
@@ -1816,21 +1827,53 @@
                 selectA.innerHTML += `<option value="${escapeHtml(tm.name)}">${escapeHtml(tm.name)}</option>`;
                 selectB.innerHTML += `<option value="${escapeHtml(tm.name)}" ${idx === 1 ? 'selected' : ''}>${escapeHtml(tm.name)}</option>`;
             });
+            document.getElementById('match-modal-title').innerText = "Create/Update Match";
+            document.getElementById('edit-match-id').value = "";
             document.getElementById('match-players-a').value = '';
             document.getElementById('match-players-b').value = '';
             document.getElementById('select-court').value = 'Court-1';
+            document.getElementById('match-status-select').value = 'Draft';
+            document.getElementById('match-modal').style.display = 'flex';
+        }
+
+        function openMatchModalForEdit(matchId) {
+            const db = getDatabase();
+            const t = db.find(item => item.id === currentWorkingTourneyId);
+            if (!t || !t.matches) return;
+            const m = t.matches.find(item => item.matchId === matchId);
+            if (!m) return;
+
+            const selectA = document.getElementById('select-team-a');
+            const selectB = document.getElementById('select-team-b');
+            selectA.innerHTML = ''; selectB.innerHTML = '';
+            
+            if (t.teams) {
+                t.teams.forEach(tm => {
+                    selectA.innerHTML += `<option value="${escapeHtml(tm.name)}" ${tm.name === m.teamA ? 'selected' : ''}>${escapeHtml(tm.name)}</option>`;
+                    selectB.innerHTML += `<option value="${escapeHtml(tm.name)}" ${tm.name === m.teamB ? 'selected' : ''}>${escapeHtml(tm.name)}</option>`;
+                });
+            }
+
+            document.getElementById('match-modal-title').innerText = "Create/Update Match";
+            document.getElementById('edit-match-id').value = m.matchId;
+            document.getElementById('select-court').value = m.court || 'Court-1';
+            document.getElementById('match-status-select').value = m.status || 'Draft';
+            document.getElementById('match-players-a').value = m.playersA || m.teamA || '';
+            document.getElementById('match-players-b').value = m.playersB || m.teamB || '';
             document.getElementById('match-modal').style.display = 'flex';
         }
 
         function closeMatchModal() { document.getElementById('match-modal').style.display = 'none'; }
 
-        function handleSaveAndStartMatch(e) {
+        function handleSaveMatchForm(e) {
             e.preventDefault();
             const db = getDatabase();
             const tIndex = db.findIndex(item => item.id === currentWorkingTourneyId);
             if (tIndex === -1) return;
 
+            const editMatchId = document.getElementById('edit-match-id').value;
             const court = document.getElementById('select-court').value;
+            const status = document.getElementById('match-status-select').value;
             const teamA = document.getElementById('select-team-a').value;
             const teamB = document.getElementById('select-team-b').value;
             const playersA = document.getElementById('match-players-a').value.trim();
@@ -1838,22 +1881,37 @@
 
             if (teamA === teamB) { alert("Team A and Team B cannot be identical."); return; }
 
-            const matchId = `MCH_${Date.now().toString().slice(-5)}`;
-            const newMatch = {
-                matchId, court, teamA, teamB,
-                playersA: playersA || teamA,
-                playersB: playersB || teamB,
-                status: "In Progress",
-                score: "0   0   0",
-                rawScores: [{ t1: 0, t2: 0 }, { t1: 0, t2: 0 }, { t1: 0, t2: 0 }],
-                currentSet: 1, server: 1, result: "In Progress", winner: "-"
-            };
-
             if (!db[tIndex].matches) db[tIndex].matches = [];
-            db[tIndex].matches.push(newMatch);
+
+            if (editMatchId) {
+                // Update existing match
+                const mIndex = db[tIndex].matches.findIndex(m => m.matchId === editMatchId);
+                if (mIndex >= 0) {
+                    db[tIndex].matches[mIndex].court = court;
+                    db[tIndex].matches[mIndex].status = status;
+                    db[tIndex].matches[mIndex].teamA = teamA;
+                    db[tIndex].matches[mIndex].teamB = teamB;
+                    db[tIndex].matches[mIndex].playersA = playersA || teamA;
+                    db[tIndex].matches[mIndex].playersB = playersB || teamB;
+                }
+            } else {
+                // Create new match
+                const matchId = `MCH_${Date.now().toString().slice(-5)}`;
+                const newMatch = {
+                    matchId, court, teamA, teamB,
+                    playersA: playersA || teamA,
+                    playersB: playersB || teamB,
+                    status: status,
+                    score: "0   0   0",
+                    rawScores: [{ t1: 0, t2: 0 }, { t1: 0, t2: 0 }, { t1: 0, t2: 0 }],
+                    currentSet: 1, server: 1, result: status === 'Completed' ? 'Completed' : 'In Progress', winner: "-"
+                };
+                db[tIndex].matches.push(newMatch);
+            }
+
             saveDatabase(db);
             closeMatchModal();
-            launchScoringAppForMatch(matchId);
+            viewMatches(currentWorkingTourneyId);
         }
 
         function prepareAddTournament() {
@@ -2080,7 +2138,7 @@
             if (m.currentSet) currentSet = m.currentSet;
             if (m.server) server = m.server;
 
-            const btnNextSet = document.getElementById('btn-next-set');
+            const btnSelectSet = document.getElementById('btn-select-set');
             const banner = document.getElementById('winner-banner');
 
             if (m.status === "Completed") {
@@ -2088,13 +2146,27 @@
                 winnerName = m.winner;
                 banner.innerText = `🏆 Winner: ${winnerName}!`;
                 banner.style.display = 'block';
-                if (btnNextSet) { btnNextSet.disabled = true; btnNextSet.style.opacity = '0.5'; }
+                if (btnSelectSet) { btnSelectSet.disabled = true; btnSelectSet.style.opacity = '0.5'; }
             } else {
                 isMatchOver = false;
                 banner.style.display = 'none';
-                if (btnNextSet) { btnNextSet.disabled = false; btnNextSet.style.opacity = '1'; }
+                if (btnSelectSet) { btnSelectSet.disabled = false; btnSelectSet.style.opacity = '1'; }
             }
             renderScorerUI();
+        }
+
+        function promptSelectSet() {
+            const user = getCurrentUser();
+            if (isMatchOver || (user && user.role === "guest")) return;
+
+            const choice = prompt(`Select Current Set (Enter 1, 2, or 3):\nCurrently active: Set ${currentSet}`, currentSet);
+            if (choice === "1" || choice === "2" || choice === "3") {
+                currentSet = parseInt(choice);
+                renderScorerUI();
+                syncScorerToFirebase();
+            } else if (choice !== null) {
+                alert("Invalid set number. Please enter 1, 2, or 3.");
+            }
         }
 
         function syncScorerToFirebase() {
@@ -2110,7 +2182,7 @@
 
             const p1 = document.getElementById('team1-input').value.trim() || 'Player 1';
             const p2 = document.getElementById('team2-input').value.trim() || 'Player 2';
-            let formattedScore = scores.slice(0, currentSet).map(s => `${s.t1}-${s.t2}`).join(' | ');
+            let formattedScore = scores.slice(0, 3).map(s => `${s.t1}-${s.t2}`).join(' | ');
 
             db[tIndex].matches[mIndex].playersA = p1;
             db[tIndex].matches[mIndex].playersB = p2;
@@ -2172,7 +2244,7 @@
 
         function getSetsWon(team) {
             let won = 0;
-            for (let i = 0; i < currentSet; i++) {
+            for (let i = 0; i < 3; i++) {
                 const s = scores[i];
                 if (team === 1 && s.t1 > s.t2) won++;
                 if (team === 2 && s.t2 > s.t1) won++;
@@ -2243,8 +2315,8 @@
             document.getElementById('top-name-1').innerText = p1;
             document.getElementById('top-name-2').innerText = p2;
 
-            document.getElementById('top-sets-1').innerText = scores.slice(0, currentSet).map(s => s.t1).join('   ');
-            document.getElementById('top-sets-2').innerText = scores.slice(0, currentSet).map(s => s.t2.toString()).join('   ');
+            document.getElementById('top-sets-1').innerText = scores.map(s => s.t1).join('   ');
+            document.getElementById('top-sets-2').innerText = scores.map(s => s.t2.toString()).join('   ');
 
             const s1 = document.getElementById('top-serve-1'), s2 = document.getElementById('top-serve-2');
             const c1 = document.getElementById('card-1'), c2 = document.getElementById('card-2');
@@ -2260,11 +2332,15 @@
             document.getElementById('score-1').innerText = scores[currentSet - 1].t1;
             document.getElementById('score-2').innerText = scores[currentSet - 1].t2;
 
-            const btnNextSet = document.getElementById('btn-next-set');
+            const btnSelectSet = document.getElementById('btn-select-set');
+            if (btnSelectSet) {
+                btnSelectSet.innerText = `Change Current Set (Set ${currentSet})`;
+            }
+
             if (isMatchOver) {
-                if (btnNextSet) { btnNextSet.disabled = true; btnNextSet.style.opacity = '0.5'; }
+                if (btnSelectSet) { btnSelectSet.disabled = true; btnSelectSet.style.opacity = '0.5'; }
             } else {
-                if (btnNextSet) { btnNextSet.disabled = false; btnNextSet.style.opacity = '1'; }
+                if (btnSelectSet) { btnSelectSet.disabled = false; btnSelectSet.style.opacity = '1'; }
             }
         }
 
