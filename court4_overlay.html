@@ -11,10 +11,10 @@
 
     <style>
         :root {
-            --bg-solid: #0f172a; /* Fully non-transparent solid background color */
-            --card-bg: #1e293b;
-            --accent-green: #22c55e;
-            --text-light: #f8fafc;
+            --bg-solid: #ffffff; /* Fully non-transparent solid background color */
+            --card-bg: #ffffff;
+            --accent-green: #2a49e8;
+            --text-light: #2a49e8;
             --text-muted: #94a3b8;
             --border-color: #334155;
         }
@@ -97,28 +97,53 @@
             text-align: center;
         }
 
-        .player-name-text {
-            font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+        .player-name-text-team1 {
+            font-size: clamp(0.85rem, 1.5vw, 1.25rem);
             font-weight: 500;
-            color: #ffffff;
+            color: #2a49e8;
             text-align: left;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .sets-display {
-            font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+        .player-name-text-team2 {
+            font-size: clamp(0.85rem, 1.5vw, 1.25rem);
+            font-weight: 500;
+            color: red;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+
+        .sets-display-team1 {
+            font-size: clamp(0.85rem, 1.5vw, 1.25rem);
             font-weight: 600;
-            color: #ffffff;
+            color: #2a49e8;
             text-align: right;
             letter-spacing: 1px;
             white-space: pre;
             padding-left: 8px;
         }
 
-        .serving-text {
+         .sets-display-team2 {
+            font-size: clamp(0.85rem, 1.5vw, 1.25rem);
+            font-weight: 600;
+            color: red;
+            text-align: right;
+            letter-spacing: 1px;
+            white-space: pre;
+            padding-left: 8px;
+        }
+
+        .serving-text-team1 {
             color: var(--accent-green) !important;
+        }
+
+         .serving-text-team2 {
+            color: red !important;
         }
 
         .no-match-msg {
@@ -135,7 +160,7 @@
     <div class="tv-overlay-box">
         <div class="court-badge">
             <div class="tourney-logo-container">
-                <div id="tourney-logo-wrapper" style="font-size: 1.2rem;">🏆</div>
+                <div id="tourney-logo-wrapper" style="font-size: 1.2rem;">🏆ABPL-2</div>
             </div>
             <span id="match-status-tag" style="color:var(--accent-green); font-weight:600;">Live (Court-4)</span>
         </div>
@@ -199,7 +224,8 @@
             if (activeTournament && activeTournament.logo) {
                 logoWrapper.innerHTML = `<img src="${activeTournament.logo}" class="tourney-logo-img">`;
             } else {
-                logoWrapper.innerHTML = "🏆";
+                //alert('text');
+                logoWrapper.innerHTML = "🏆ABPL-2";
             }
 
             if (!activeMatch) {
@@ -220,20 +246,20 @@
             let logo1Html = team1Logo ? `<img src="${team1Logo}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : "🛡️";
             let logo2Html = team2Logo ? `<img src="${team2Logo}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : "🛡️";
 
-            let servingClass1 = server === 1 ? "serving-text" : "";
-            let servingClass2 = server === 2 ? "serving-text" : "";
+            let servingClass1 = server === 1 ? "serving-text-team1" : "";
+            let servingClass2 = server === 2 ? "serving-text-team2" : "";
             let serveVisible1 = server === 1 ? "visible" : "hidden";
             let serveVisible2 = server === 2 ? "visible" : "hidden";
 
             container.innerHTML = `
                 <div class="top-team-logo">${logo1Html}</div>
-                <div class="player-name-text ${servingClass1}">${escapeHtml(p1)}:</div>
-                <div class="sets-display ${servingClass1}">${setScoresT1.join('&nbsp;&nbsp;')}</div>
+                <div class="player-name-text-team1 ${servingClass1}">${escapeHtml(p1)}:</div>
+                <div class="sets-display-team1 ${servingClass1}">${setScoresT1.join('&nbsp;&nbsp;')}</div>
                 <div class="serve-icon" style="visibility: ${serveVisible1};">🏸</div>
 
                 <div class="top-team-logo">${logo2Html}</div>
-                <div class="player-name-text ${servingClass2}">${escapeHtml(p2)}:</div>
-                <div class="sets-display ${servingClass2}">${setScoresT2.join('&nbsp;&nbsp;')}</div>
+                <div class="player-name-text-team2 ${servingClass2}">${escapeHtml(p2)}:</div>
+                <div class="sets-display-team2 ${servingClass2}">${setScoresT2.join('&nbsp;&nbsp;')}</div>
                 <div class="serve-icon" style="visibility: ${serveVisible2};">🏸</div>
             `;
         });
