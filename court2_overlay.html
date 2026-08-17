@@ -138,7 +138,11 @@
             padding-left: 8px;
         }
 
-        .serving-text {
+        .serving-text-team1 {
+            color: var(--accent-green) !important;
+        }
+
+         .serving-text-team2 {
             color: var(--accent-green) !important;
         }
 
@@ -242,8 +246,8 @@
             let logo1Html = team1Logo ? `<img src="${team1Logo}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : "🛡️";
             let logo2Html = team2Logo ? `<img src="${team2Logo}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : "🛡️";
 
-            let servingClass1 = server === 1 ? "serving-text" : "";
-            let servingClass2 = server === 2 ? "serving-text" : "";
+            let servingClass1 = server === 1 ? "serving-text-team1" : "";
+            let servingClass2 = server === 2 ? "serving-text-team2" : "";
             let serveVisible1 = server === 1 ? "visible" : "hidden";
             let serveVisible2 = server === 2 ? "visible" : "hidden";
 
