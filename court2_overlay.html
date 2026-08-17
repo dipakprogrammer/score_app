@@ -97,7 +97,7 @@
             text-align: center;
         }
 
-        .player-name-text {
+        .player-name-text-team1 {
             font-size: clamp(0.85rem, 1.5vw, 1.25rem);
             font-weight: 500;
             color: #2a49e8;
@@ -107,10 +107,31 @@
             text-overflow: ellipsis;
         }
 
-        .sets-display {
+        .player-name-text-team2 {
+            font-size: clamp(0.85rem, 1.5vw, 1.25rem);
+            font-weight: 500;
+            color: #red;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+
+        .sets-display-team1 {
             font-size: clamp(0.85rem, 1.5vw, 1.25rem);
             font-weight: 600;
             color: #2a49e8;
+            text-align: right;
+            letter-spacing: 1px;
+            white-space: pre;
+            padding-left: 8px;
+        }
+
+         .sets-display-team2 {
+            font-size: clamp(0.85rem, 1.5vw, 1.25rem);
+            font-weight: 600;
+            color: #red;
             text-align: right;
             letter-spacing: 1px;
             white-space: pre;
@@ -227,13 +248,13 @@
 
             container.innerHTML = `
                 <div class="top-team-logo">${logo1Html}</div>
-                <div class="player-name-text ${servingClass1}">${escapeHtml(p1)}:</div>
-                <div class="sets-display ${servingClass1}">${setScoresT1.join('&nbsp;&nbsp;')}</div>
+                <div class="player-name-text-team1 ${servingClass1}">${escapeHtml(p1)}:</div>
+                <div class="sets-display-team1 ${servingClass1}">${setScoresT1.join('&nbsp;&nbsp;')}</div>
                 <div class="serve-icon" style="visibility: ${serveVisible1};">🏸</div>
 
                 <div class="top-team-logo">${logo2Html}</div>
-                <div class="player-name-text ${servingClass2}">${escapeHtml(p2)}:</div>
-                <div class="sets-display ${servingClass2}">${setScoresT2.join('&nbsp;&nbsp;')}</div>
+                <div class="player-name-text-team2 ${servingClass2}">${escapeHtml(p2)}:</div>
+                <div class="sets-display-team2 ${servingClass2}">${setScoresT2.join('&nbsp;&nbsp;')}</div>
                 <div class="serve-icon" style="visibility: ${serveVisible2};">🏸</div>
             `;
         });
