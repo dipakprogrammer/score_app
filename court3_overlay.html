@@ -35,12 +35,12 @@
 
         .tv-overlay-box {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 10px;
+            left: 10px;
             background-color: var(--bg-solid);
-            border: 1.5px solid var(--border-color);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 12px 16px;
+            padding: 5px 10px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.8);
             min-width: 340px;
             max-width: 420px;
@@ -53,7 +53,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 8px;
-            display: flex;
+            display: none;
             justify-content: space-between;
             align-items: center;
         }
@@ -75,7 +75,7 @@
             display: grid;
             grid-template-columns: 28px minmax(0, 1fr) auto 24px;
             align-items: center;
-            gap: 6px 10px;
+            gap: 0px 0px;
             width: 100%;
         }
 
@@ -90,6 +90,7 @@
             align-items: center;
             justify-content: center;
             font-size: 0.8rem;
+            margin-top: 2px;
         }
 
         .serve-icon {
@@ -105,6 +106,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-transform: uppercase;
+           
         }
 
         .player-name-text-team2 {
@@ -115,6 +118,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-transform: uppercase;
+       
         }
 
 
@@ -126,6 +131,7 @@
             letter-spacing: 1px;
             white-space: pre;
             padding-left: 8px;
+           
         }
 
          .sets-display-team2 {
@@ -136,14 +142,19 @@
             letter-spacing: 1px;
             white-space: pre;
             padding-left: 8px;
+      
         }
 
         .serving-text-team1 {
             color: var(--accent-green) !important;
+            border-bottom: 1px dashed blue;
+            padding-bottom: 5px;
         }
 
          .serving-text-team2 {
             color: red !important;
+            border-top: 1px dashed red;
+            margin-top: 3px;
         }
 
         .no-match-msg {
@@ -243,7 +254,7 @@
             let setScoresT1 = scores.slice(0, currentSet).map(s => s.t1.toString());
             let setScoresT2 = scores.slice(0, currentSet).map(s => s.t2.toString());
 
-            let logo1Html = team1Logo ? `<img src="${team1Logo}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : "🛡️";
+            let logo1Html = team1Logo ? `<img src="${team1Logo}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : "🏆";
             let logo2Html = team2Logo ? `<img src="${team2Logo}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : "🛡️";
 
             let servingClass1 = server === 1 ? "serving-text-team1" : "";
@@ -253,12 +264,12 @@
 
             container.innerHTML = `
                 <div class="top-team-logo">${logo1Html}</div>
-                <div class="player-name-text-team1 ${servingClass1}">${escapeHtml(p1)}:</div>
+                <div class="player-name-text-team1 ${servingClass1}">&nbsp;${escapeHtml(p1)}</div>
                 <div class="sets-display-team1 ${servingClass1}">${setScoresT1.join('&nbsp;&nbsp;')}</div>
                 <div class="serve-icon" style="visibility: ${serveVisible1};">🏸</div>
 
                 <div class="top-team-logo">${logo2Html}</div>
-                <div class="player-name-text-team2 ${servingClass2}">${escapeHtml(p2)}:</div>
+                <div class="player-name-text-team2 ${servingClass2}">&nbsp;${escapeHtml(p2)}</div>
                 <div class="sets-display-team2 ${servingClass2}">${setScoresT2.join('&nbsp;&nbsp;')}</div>
                 <div class="serve-icon" style="visibility: ${serveVisible2};">🏸</div>
             `;
