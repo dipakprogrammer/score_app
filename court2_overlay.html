@@ -172,7 +172,7 @@
         </div>
         
         <div class="scores-summary" id="scorecard-content">
-            <div class="no-match-msg" style="grid-column: span 4;">No active match found on this court.</div>
+            <div class="no-match-msg" style="grid-column: span 4;">Connecting to live stream...</div>
         </div>
     </div>
 
@@ -190,10 +190,12 @@
         firebase.initializeApp(firebaseConfig);
         const dbRef = firebase.database().ref("tournaments_db");
 
+        // Force connection online immediately to prevent cross-device sleep throttling
+        firebase.database().goOnline();
+
         const targetCourt = "Court-2";
 
-        dbRef.on("value", snapshot => {
-            const db = snapshot.val();
+        function renderScorecard(db) {
             if (!db) return;
 
             const tournaments = Array.isArray(db) ? db : Object.values(db);
@@ -266,7 +268,21 @@
                 <div class="sets-display-team2 ${servingClass2}">${setScoresT2.join('&nbsp;&nbsp;')}</div>
                 <div class="serve-icon" style="visibility: ${serveVisible2};">🏸</div>
             `;
+        }
+
+        // 1. Real-time Firebase socket listener
+        dbRef.on("value", snapshot => {
+            renderScorecard(snapshot.val());
         });
+
+        // 2. High-speed fallback poll every 500ms to guarantee zero delay across separate network clients
+        setInterval(() => {
+            dbRef.once("value").then(snapshot => {
+                if (snapshot.exists()) {
+                    renderScorecard(snapshot.val());
+                }
+            });
+        }, 500);
 
         function escapeHtml(text) {
             return text ? text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]) : '';
