@@ -189,13 +189,11 @@
 
         firebase.initializeApp(firebaseConfig);
         const dbRef = firebase.database().ref("tournaments_db");
-
-        // Force connection online immediately to prevent cross-device sleep throttling
         firebase.database().goOnline();
 
         const targetCourt = "Court-2";
 
-        function renderScorecard(db) {
+        function updateOverlay(db) {
             if (!db) return;
 
             const tournaments = Array.isArray(db) ? db : Object.values(db);
@@ -270,19 +268,31 @@
             `;
         }
 
-        // 1. Real-time Firebase socket listener
-        dbRef.on("value", snapshot => {
-            renderScorecard(snapshot.val());
-        });
+        // 1. Instant load from local cache for zero delay on startup
+        const cached = localStorage.getItem("tournaments_db");
+        if (cached) {
+            try { updateOverlay(JSON.parse(cached)); } catch(e){}
+        }
 
-        // 2. High-speed fallback poll every 500ms to guarantee zero delay across separate network clients
+        // 2. High-speed background sync query (every 300ms) to ensure cross-device near real-time rendering
         setInterval(() => {
-            dbRef.once("value").then(snapshot => {
-                if (snapshot.exists()) {
-                    renderScorecard(snapshot.val());
+            dbRef.once("value").then(snap => {
+                if (snap.exists()) {
+                    const data = snap.val();
+                    localStorage.setItem("tournaments_db", JSON.stringify(data));
+                    updateOverlay(data);
                 }
             });
-        }, 500);
+        }, 300);
+
+        // 3. Real-time Firebase websocket listener
+        dbRef.on("value", snapshot => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                localStorage.setItem("tournaments_db", JSON.stringify(data));
+                updateOverlay(data);
+            }
+        });
 
         function escapeHtml(text) {
             return text ? text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]) : '';
